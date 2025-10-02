@@ -1,0 +1,312 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import math
+
+class MineBoltDesignApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Diseño de Pernos de Sostenimiento - Excavaciones Mineras")
+        self.root.geometry("1200x800")
+        self.root.configure(bg='#1e293b')
+        
+        # Crear el notebook (pestañas)
+        self.notebook = ttk.Notebook(root)
+        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # Pestaña de entrada de datos
+        self.frame_input = tk.Frame(self.notebook, bg='#1e293b')
+        self.notebook.add(self.frame_input, text='Datos de Entrada')
+        
+        # Pestaña de resultados
+        self.frame_results = tk.Frame(self.notebook, bg='#1e293b')
+        self.notebook.add(self.frame_results, text='Resultados')
+        
+        self.create_input_widgets()
+        self.create_results_widgets()
+        
+    def create_input_widgets(self):
+        # Título
+        title_frame = tk.Frame(self.frame_input, bg='#334155', relief='raised', bd=2)
+        title_frame.pack(fill='x', padx=10, pady=10)
+        
+        title_label = tk.Label(title_frame, text="DISEÑO DE PERNOS DE SOSTENIMIENTO", 
+                               font=('Arial', 16, 'bold'), bg='#334155', fg='#fbbf24')
+        title_label.pack(pady=10)
+        
+        subtitle_label = tk.Label(title_frame, text="Sistema de cálculo para excavaciones mineras subterráneas", 
+                                 font=('Arial', 10), bg='#334155', fg='#cbd5e1')
+        subtitle_label.pack(pady=5)
+        
+        # Frame principal con scroll
+        main_frame = tk.Frame(self.frame_input, bg='#1e293b')
+        main_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # Sección 1: Características del Macizo Rocoso
+        section1 = tk.LabelFrame(main_frame, text="Características del Macizo Rocoso", 
+                                font=('Arial', 12, 'bold'), bg='#334155', fg='#fbbf24', 
+                                relief='raised', bd=2)
+        section1.pack(fill='x', padx=5, pady=5)
+        
+        self.profundidad = self.create_input_field(section1, "Profundidad (m):", 800, 0, 0)
+        self.peso_especifico = self.create_input_field(section1, "Peso Específico γ (KN/m³):", 27, 0, 2)
+        self.k_ratio = self.create_input_field(section1, "Razón K (σh/σv):", 1.6, 1, 0)
+        self.resistencia_roca = self.create_input_field(section1, "Resistencia σci (MPa):", 100, 1, 2)
+        
+        # Sección 2: Geometría del Túnel
+        section2 = tk.LabelFrame(main_frame, text="Geometría del Túnel", 
+                                font=('Arial', 12, 'bold'), bg='#334155', fg='#fbbf24',
+                                relief='raised', bd=2)
+        section2.pack(fill='x', padx=5, pady=5)
+        
+        self.ancho_tunel = self.create_input_field(section2, "Ancho (m):", 6, 0, 0)
+        self.alto_tunel = self.create_input_field(section2, "Alto (m):", 6, 0, 2)
+        self.longitud_tunel = self.create_input_field(section2, "Longitud (m):", 300, 1, 0)
+        
+        # Sección 3: Características del Perno
+        section3 = tk.LabelFrame(main_frame, text="Características del Perno", 
+                                font=('Arial', 12, 'bold'), bg='#334155', fg='#fbbf24',
+                                relief='raised', bd=2)
+        section3.pack(fill='x', padx=5, pady=5)
+        
+        self.diametro_perno = self.create_input_field(section3, "Diámetro (mm):", 25, 0, 0)
+        self.resistencia_perno = self.create_input_field(section3, "Resistencia (MPa):", 520, 0, 2)
+        self.factor_seguridad = self.create_input_field(section3, "Factor de Seguridad:", 2, 1, 0)
+        
+        # Botón de cálculo
+        calc_button = tk.Button(main_frame, text="CALCULAR DISEÑO", 
+                               command=self.calcular, font=('Arial', 14, 'bold'),
+                               bg='#fbbf24', fg='#1e293b', relief='raised', bd=3,
+                               cursor='hand2', padx=20, pady=10)
+        calc_button.pack(pady=20)
+        
+    def create_input_field(self, parent, label_text, default_value, row, col):
+        label = tk.Label(parent, text=label_text, font=('Arial', 10), 
+                        bg='#334155', fg='#cbd5e1')
+        label.grid(row=row, column=col, padx=10, pady=5, sticky='w')
+        
+        entry = tk.Entry(parent, font=('Arial', 10), width=15, bg='#475569', 
+                        fg='white', insertbackground='white')
+        entry.insert(0, str(default_value))
+        entry.grid(row=row, column=col+1, padx=10, pady=5, sticky='w')
+        
+        return entry
+    
+    def create_results_widgets(self):
+        # Frame con scroll para resultados
+        canvas = tk.Canvas(self.frame_results, bg='#1e293b')
+        scrollbar = ttk.Scrollbar(self.frame_results, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = tk.Frame(canvas, bg='#1e293b')
+        
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Título de resultados
+        title_label = tk.Label(self.scrollable_frame, text="RESULTADOS DEL DISEÑO", 
+                              font=('Arial', 16, 'bold'), bg='#1e293b', fg='#fbbf24')
+        title_label.pack(pady=20)
+        
+        # Aquí se agregarán los resultados dinámicamente
+        self.results_frame = tk.Frame(self.scrollable_frame, bg='#1e293b')
+        self.results_frame.pack(fill='both', expand=True, padx=20)
+        
+    def calcular(self):
+        try:
+            # Obtener valores de entrada
+            profundidad = float(self.profundidad.get())
+            peso_especifico = float(self.peso_especifico.get())
+            k_ratio = float(self.k_ratio.get())
+            resistencia_roca = float(self.resistencia_roca.get())
+            factor_seguridad = float(self.factor_seguridad.get())
+            ancho_tunel = float(self.ancho_tunel.get())
+            alto_tunel = float(self.alto_tunel.get())
+            longitud_tunel = float(self.longitud_tunel.get())
+            diametro_perno = float(self.diametro_perno.get())
+            resistencia_perno = float(self.resistencia_perno.get())
+            
+            # a) Tensiones principales σ1, σ2
+            sigma_v = profundidad * peso_especifico  # KN/m²
+            sigma_h = k_ratio * sigma_v
+            sigma1 = sigma_h / 1000  # MPa
+            sigma2 = sigma_v / 1000  # MPa
+            
+            # b) Carga del macizo rocoso
+            B = ancho_tunel
+            H = alto_tunel
+            
+            # Factor de condición de roca (RMR estimado)
+            RMR = min(100, 20 * math.log10(resistencia_roca) + 12)
+            
+            # Altura de zona de aflojamiento
+            Hp = B * (0.5 - 0.1 * (RMR / 100))
+            
+            # Carga por metro lineal
+            carga_metro_lineal = peso_especifico * B * Hp
+            
+            # Carga total sobre el techo
+            carga_total_techo = carga_metro_lineal * B
+            
+            # c) Capacidad portante del perno
+            area_perno = math.pi * pow(diametro_perno / 1000, 2) / 4  # m²
+            capacidad_perno = area_perno * resistencia_perno * 1000  # KN
+            capacidad_diseno = capacidad_perno / factor_seguridad  # KN
+            
+            # d) Longitud de los pernos
+            longitud_anclaje = 1.0  # metro
+            longitud_perno = Hp + longitud_anclaje + 0.5
+            
+            # e) Esfuerzo de adherencia
+            perimetro_barreno = math.pi * (diametro_perno / 1000)
+            longitud_efectiva = longitud_anclaje
+            area_adherencia = perimetro_barreno * longitud_efectiva
+            esfuerzo_adherencia = capacidad_diseno / area_adherencia / 1000  # MPa
+            
+            # f) Número de pernos
+            area_influencia = 1.5 * 1.5
+            carga_por_perno = carga_total_techo * area_influencia
+            pernos_transversal = math.ceil(B / 1.5)
+            pernos_por_seccion = pernos_transversal * math.ceil(H / 1.5 / 2)
+            
+            secciones_totales = math.ceil(longitud_tunel / 1.5)
+            numero_total_pernos = pernos_por_seccion * secciones_totales
+            
+            # g) Pattern recomendado
+            espaciamiento_recomendado = math.sqrt(capacidad_diseno / carga_total_techo)
+            espaciamiento_final = min(1.5, max(1.0, espaciamiento_recomendado))
+            
+            # Mostrar resultados
+            self.mostrar_resultados({
+                'sigma1': sigma1,
+                'sigma2': sigma2,
+                'sigma_v': sigma_v,
+                'sigma_h': sigma_h,
+                'RMR': RMR,
+                'altura_aflojamiento': Hp,
+                'carga_metro_lineal': carga_metro_lineal,
+                'carga_total_techo': carga_total_techo,
+                'area_perno': area_perno * 1e6,
+                'capacidad_perno': capacidad_perno,
+                'capacidad_diseno': capacidad_diseno,
+                'longitud_perno': longitud_perno,
+                'longitud_anclaje': longitud_anclaje,
+                'esfuerzo_adherencia': esfuerzo_adherencia,
+                'carga_por_perno': carga_por_perno,
+                'pernos_por_seccion': pernos_por_seccion,
+                'numero_total_pernos': numero_total_pernos,
+                'espaciamiento_final': espaciamiento_final,
+                'pernos_transversal': pernos_transversal
+            })
+            
+            # Cambiar a la pestaña de resultados
+            self.notebook.select(self.frame_results)
+            
+        except ValueError:
+            messagebox.showerror("Error", "Por favor, ingrese valores numéricos válidos")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error en el cálculo: {str(e)}")
+    
+    def mostrar_resultados(self, results):
+        # Limpiar resultados anteriores
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        
+        # a) Tensiones Principales
+        self.create_result_section(self.results_frame, "a) TENSIONES PRINCIPALES", [
+            ("σ₁ (Horizontal):", f"{results['sigma1']:.2f} MPa"),
+            ("σ₂ (Vertical):", f"{results['sigma2']:.2f} MPa"),
+            ("σᵥ:", f"{results['sigma_v']:.2f} KN/m²"),
+            ("σₕ:", f"{results['sigma_h']:.2f} KN/m²")
+        ])
+        
+        # b) Carga del Macizo Rocoso
+        self.create_result_section(self.results_frame, "b) CARGA DEL MACIZO ROCOSO", [
+            ("RMR estimado:", f"{results['RMR']:.1f}"),
+            ("Altura de aflojamiento:", f"{results['altura_aflojamiento']:.2f} m"),
+            ("Carga por metro lineal:", f"{results['carga_metro_lineal']:.2f} KN/m"),
+            ("Carga total techo:", f"{results['carga_total_techo']:.2f} KN/m²")
+        ])
+        
+        # c) Capacidad Portante
+        self.create_result_section(self.results_frame, "c) CAPACIDAD PORTANTE DEL PERNO", [
+            ("Área del perno:", f"{results['area_perno']:.2f} mm²"),
+            ("Capacidad nominal:", f"{results['capacidad_perno']:.2f} KN"),
+            ("Capacidad de diseño:", f"{results['capacidad_diseno']:.2f} KN")
+        ], highlight=True)
+        
+        # d) Longitud de Pernos
+        self.create_result_section(self.results_frame, "d) LONGITUD DE PERNOS", [
+            ("Longitud de anclaje:", f"{results['longitud_anclaje']:.2f} m"),
+            ("Longitud total:", f"{results['longitud_perno']:.2f} m")
+        ], highlight=True)
+        
+        # e) Esfuerzo de Adherencia
+        self.create_result_section(self.results_frame, "e) ESFUERZO DE ADHERENCIA", [
+            ("Adherencia requerida:", f"{results['esfuerzo_adherencia']:.2f} MPa")
+        ], highlight=True)
+        
+        # f) Número de Pernos
+        self.create_result_section(self.results_frame, "f) NÚMERO DE PERNOS", [
+            ("Pernos por sección:", f"{results['pernos_por_seccion']}"),
+            ("Total para túnel completo:", f"{results['numero_total_pernos']} pernos")
+        ], highlight=True)
+        
+        # g) Pattern Recomendado
+        self.create_result_section(self.results_frame, "g) PATTERN RECOMENDADO", [
+            ("Espaciamiento:", f"{results['espaciamiento_final']:.2f} m × {results['espaciamiento_final']:.2f} m"),
+            ("Pernos transversales:", f"{results['pernos_transversal']}"),
+            ("Distribución:", "Techo y paredes superiores en patrón cuadrado")
+        ], color='#065f46', highlight=True)
+        
+        # Notas técnicas
+        notes_frame = tk.LabelFrame(self.results_frame, text="NOTAS TÉCNICAS", 
+                                   font=('Arial', 11, 'bold'), bg='#334155', 
+                                   fg='#fbbf24', relief='raised', bd=2)
+        notes_frame.pack(fill='x', padx=5, pady=15)
+        
+        notes = [
+            "• Los cálculos están basados en la teoría de Terzaghi para túneles",
+            "• El RMR es estimado a partir de la resistencia a compresión simple",
+            "• Se considera perno helicoidal grado 75 con resistencia de 520 MPa",
+            "• El espaciamiento considera la capacidad del perno y la carga del macizo",
+            "• La longitud de anclaje estándar es de 1.0 metro en roca competente"
+        ]
+        
+        for note in notes:
+            note_label = tk.Label(notes_frame, text=note, font=('Arial', 9),
+                                 bg='#334155', fg='#cbd5e1', anchor='w')
+            note_label.pack(fill='x', padx=10, pady=2)
+    
+    def create_result_section(self, parent, title, data, color='#334155', highlight=False):
+        section = tk.LabelFrame(parent, text=title, font=('Arial', 11, 'bold'),
+                               bg=color, fg='#fbbf24' if not highlight else '#86efac',
+                               relief='raised', bd=2)
+        section.pack(fill='x', padx=5, pady=5)
+        
+        for label, value in data:
+            row_frame = tk.Frame(section, bg=color)
+            row_frame.pack(fill='x', padx=10, pady=3)
+            
+            label_widget = tk.Label(row_frame, text=label, font=('Arial', 10),
+                                   bg=color, fg='#cbd5e1', anchor='w')
+            label_widget.pack(side='left', fill='x', expand=True)
+            
+            value_widget = tk.Label(row_frame, text=value, font=('Arial', 10, 'bold'),
+                                   bg=color, fg='#fbbf24' if not highlight else '#86efac',
+                                   anchor='e')
+            value_widget.pack(side='right')
+
+def main():
+    root = tk.Tk()
+    app = MineBoltDesignApp(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
+    
